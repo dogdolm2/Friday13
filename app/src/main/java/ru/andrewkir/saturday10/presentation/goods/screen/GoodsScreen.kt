@@ -1,18 +1,20 @@
 package ru.andrewkir.saturday10.presentation.goods.screen
 
+import GoodsScreenContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.flow.collectLatest
 import ru.andrewkir.saturday10.presentation.destinations.DetailsScreenContentDestination
-import ru.andrewkir.saturday10.presentation.goods.components.GoodsScreenContent
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEffect.OpenDetails
 import ru.andrewkir.saturday10.presentation.goods.viewmodels.GoodsViewModel
 
+@RootNavGraph(start = true)
 @Destination(start = true)
 @Composable
 fun GoodsScreen(
@@ -32,7 +34,7 @@ fun GoodsScreen(
     viewModel.effect.collectLatest { effect ->
       when (effect) {
         is OpenDetails -> {
-          navigator.navigate(DetailsScreenContentDestination(user = effect.item))
+          navigator.navigate(DetailsScreenContentDestination(note = effect.item))
         }
       }
     }

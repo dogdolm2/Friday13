@@ -1,19 +1,13 @@
-package ru.andrewkir.saturday10.presentation.goods.components
-
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ru.andrewkir.saturday10.R
-import ru.andrewkir.saturday10.data.models.GoodsItemModel
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshState
+import ru.andrewkir.saturday10.presentation.goods.components.NoteCard
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsState
 
@@ -22,28 +16,58 @@ fun GoodsScreenContent(
   uiState: GoodsState,
   onEvent: (GoodsEvent) -> Unit,
 ) {
-  Column {
-    Column(
-      modifier = Modifier.fillMaxWidth(),
-    ) {
-      Button(
-        modifier = Modifier.padding(16.dp),
-        onClick = {
-          onEvent(GoodsEvent.AddButtonClicked)
-        }) {
-        Text(text = "Update users list")
-      }
+  var isRefreshing by remember { mutableStateOf(false) }
+
+  // trigger fetch after swipe
+  LaunchedEffect(isRefreshing) {
+    if (isRefreshing) {
+      onEvent(GoodsEvent.FetchButtonClicked)
+      isRefreshing = false
     }
-    LazyColumn (
-      modifier = Modifier.padding(horizontal = 16.dp)
-    ){
-      uiState.users.forEach { item ->
-        item {
-          Spacer(modifier = Modifier.height(9.dp))
-          UserCard(item, onEvent)
-          Spacer(modifier = Modifier.height(9.dp))
-        }
+  }
+  SwipeRefresh(
+    state = SwipeRefreshState(isRefreshing),
+    onRefresh = { isRefreshing = true }
+  ) {
+  LazyColumn(
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = 16.dp)
+  ) {
+    item {
+    TextField(
+      value = uiState.title,
+      onValueChange = { changedValue -> onEvent(GoodsEvent.UpdateGoodsTextField(changedValue)) },
+      label = { Text("Enter title") },
+      modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    TextField(
+      value = uiState.body,
+      onValueChange = { changedValue -> onEvent(GoodsEvent.UpdateGoodsUrlField(changedValue)) },
+      label = { Text("Enter body") },
+      modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Button(
+      onClick = { onEvent(GoodsEvent.AddButtonClicked) }
+    ) {
+      Text("Add")
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
       }
+        uiState.notes.forEach { item ->
+          item {
+            Spacer(modifier = Modifier.height(9.dp))
+            NoteCard(item, onEvent)
+            Spacer(modifier = Modifier.height(9.dp))
+          }
+        }
     }
   }
 }

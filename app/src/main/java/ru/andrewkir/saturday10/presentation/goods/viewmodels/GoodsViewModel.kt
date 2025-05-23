@@ -1,9 +1,12 @@
 package ru.andrewkir.saturday10.presentation.goods.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient.Builder
@@ -12,13 +15,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.andrewkir.saturday10.App
 import ru.andrewkir.saturday10.data.api.ApiExample
-import ru.andrewkir.saturday10.data.db.User
-import ru.andrewkir.saturday10.data.models.UserDetailsModel
-import ru.andrewkir.saturday10.data.models.UserModel
+import ru.andrewkir.saturday10.data.db.Note
+import ru.andrewkir.saturday10.data.models.NoteDetailsModel
+import ru.andrewkir.saturday10.data.models.NoteModel
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEffect
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent.AddButtonClicked
-import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent.OnUserItemClick
+import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent.OnNoteItemClick
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent.UpdateGoodsTextField
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsEvent.UpdateGoodsUrlField
 import ru.andrewkir.saturday10.presentation.goods.contract.GoodsState
@@ -26,8 +29,13 @@ import ru.andrewkir.saturday10.presentation.goods.contract.GoodsState
 
 class GoodsViewModel : ViewModel() {
 
-  val state = MutableStateFlow(GoodsState())
-
+  val state = MutableStateFlow(GoodsState(
+      notes = emptyList(),
+      title = "",
+      body = "",
+      id = ""
+  ))
+  val noteState = MutableStateFlow(NoteModel(id = "", title = "", body = ""))
   private val _effect = Channel<GoodsEffect>()
   val effect = _effect.receiveAsFlow()
 
@@ -48,71 +56,115 @@ class GoodsViewModel : ViewModel() {
   fun handleEvent(event: GoodsEvent) {
     when (event) {
       is UpdateGoodsTextField -> {
-        state.value = state.value.copy(goodsName = event.text)
+        state.value = state.value.copy(title = event.title)
       }
-
-      is OnUserItemClick -> {
-        val client = getClient()
+      is OnNoteItemClick -> {
         viewModelScope.launch {
-          val userFollowers = client.getFollowers(event.user.id)
-          val userToReturn = UserModel(
-            id = event.user.id,
-            login = event.user.login,
-            imageUrl = event.user.imageUrl,
-            followersList = (
-              userFollowers.map {
-                UserDetailsModel(
-                  id = it.id,
-                  login = it.login,
-                  imageUrl = it.imageUrl,
-                  followersUrl = it.followersUrl
-                )
-              }
-            )
+          val noteToReturn = NoteModel(
+            id = event.note.id,
+            title = event.note.title,
+            body = event.note.body
           )
-          _effect.send(GoodsEffect.OpenDetails(userToReturn))
+          Log.e("state", "[VM] Redirected to ID: ${noteToReturn.id}")
+          _effect.send(GoodsEffect.OpenDetails(noteToReturn))
         }
       }
 
       is AddButtonClicked -> {
-        val client = getClient()
-
-        viewModelScope.launch {
-          try {
-            App.getDatabase()?.userDao()?.let { dao ->
-              val users = client.getUsers()
-              users.forEach { user ->
-                dao.insert(
-                  User(
-                    id = user.id,
-                    login = user.login,
-                    imageUrl = user.imageUrl
-                  )
-                )
-              }
-            }
-          } catch (e: Exception) {
-            e.printStackTrace()
-          }
-        }
-        App.getDatabase()?.userDao()?.let { dao ->
-          val userlist = dao.getAll()
-          state.value = state.value.copy(
-            users = userlist.map {
-              UserModel(
-                id = it.id,
-                login = it.login,
-                imageUrl = it.imageUrl,
-                followersList = emptyList()
+        Log.e("state", "[VM] Add process started")
+//        val client = getClient()
+        App.getDatabase()?.noteDao()?.insert(
+              Note(
+                  id = java.util.UUID.randomUUID().toString(),
+                  title = state.value.title,
+                  body = state.value.body
               )
-            },
-            goodsName = ""
+          )
+        App.getDatabase()?.noteDao()?.let { dao ->
+          val notelist = dao.getAll()
+          state.value = state.value.copy(
+            notes = notelist.map {
+              NoteModel(
+                id = it.id,
+                title = it.title,
+                body = it.body
+              )
+            }
           )
         }
+        state.value.body = ""
+        state.value.title = ""
+        Log.e("state", "[VM] Added")
       }
 
+      is GoodsEvent.UpdateButtonClicked -> {
+        Log.e("state", "[VM] Update started")
+        viewModelScope.launch {
+          Log.e("state", "[VM] Updating '${noteState.value.title}' with '${noteState.value.body}'")
+          if (noteState.value.title != "" && noteState.value.body != "") {
+            Log.e("state", "[VM] Updated to '${noteState.value.title}' with '${noteState.value.body}'")
+            App.getDatabase()?.noteDao()?.update(
+              Note(
+                id = event.note.id,
+                title = noteState.value.title,
+                body = noteState.value.body
+              )
+            )
+          } else if (noteState.value.title != "") {
+            Log.e("state", "[VM] Updated to '${event.note.title}' with '${noteState.value.body}'")
+            App.getDatabase()?.noteDao()?.update(
+              Note(
+                id = event.note.id,
+                title = noteState.value.title,
+                body = event.note.body
+              )
+            )
+          } else if (noteState.value.body != "") {
+            Log.e("state", "[VM] Updated to '${noteState.value.title}' with '${event.note.body}'")
+            App.getDatabase()?.noteDao()?.update(
+              Note(
+                id = event.note.id,
+                title = event.note.title,
+                body = noteState.value.body
+              )
+            )
+          } else {
+            Log.e("state", "[VM] Updated to '${event.note.title}' with '${event.note.body}'")
+            App.getDatabase()?.noteDao()?.update(
+              Note(
+                id = event.note.id,
+                title = event.note.title,
+                body = event.note.body
+              )
+            )
+          }
+        }
+        Log.e("state", "[VM] Updated")
+      }
+      is GoodsEvent.UpdateNoteTextField -> {
+        noteState.value = noteState.value.copy(title = event.title)
+      }
+      is GoodsEvent.UpdateNoteUrlField -> {
+        noteState.value = noteState.value.copy(body = event.body)
+      }
+      is GoodsEvent.FetchButtonClicked -> {
+        Log.e("state", "[VM] Fetch started")
+        App.getDatabase()?.noteDao()?.let { dao ->
+          val notelist = dao.getAll()
+          state.value = state.value.copy(
+            notes = notelist.map {
+              NoteModel(
+                id = it.id,
+                title = it.title,
+                body = it.body
+              )
+            }
+          )
+        }
+        Log.e("state", "[VM] Fetched")
+      }
       is UpdateGoodsUrlField -> {
-        state.value = state.value.copy(goodsUrl = event.url)
+        state.value = state.value.copy(body = event.body)
       }
     }
   }
