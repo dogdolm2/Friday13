@@ -1,9 +1,16 @@
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.SwipeRefreshState
@@ -39,7 +46,9 @@ fun GoodsScreenContent(
       value = uiState.title,
       onValueChange = { changedValue -> onEvent(GoodsEvent.UpdateGoodsTextField(changedValue)) },
       label = { Text("Enter title") },
-      modifier = Modifier.fillMaxWidth()
+      modifier = Modifier.fillMaxWidth(),
+      keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+      textStyle = TextStyle(fontWeight = FontWeight.Bold)
     )
 
     Spacer(modifier = Modifier.height(8.dp))
@@ -54,8 +63,13 @@ fun GoodsScreenContent(
     Spacer(modifier = Modifier.height(8.dp))
 
     Button(
-      onClick = { onEvent(GoodsEvent.AddButtonClicked) }
+      onClick = { onEvent(GoodsEvent.AddButtonClicked) },
+      modifier = Modifier.fillMaxWidth()
     ) {
+      Icon (
+        imageVector = Icons.Default.Add,
+        contentDescription = "Add"
+      )
       Text("Add")
     }
 

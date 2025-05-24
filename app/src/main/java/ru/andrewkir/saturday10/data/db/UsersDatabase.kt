@@ -46,6 +46,9 @@ interface UserDao {
   @Query("UPDATE note SET body = :body WHERE id = :id")
   fun updateBody(id: String, body: String)
 
+  @Query("DELETE FROM Note WHERE id = :noteId")
+  fun deleteById(noteId: String)
+
   @Update
   fun update(note: Note)
 }

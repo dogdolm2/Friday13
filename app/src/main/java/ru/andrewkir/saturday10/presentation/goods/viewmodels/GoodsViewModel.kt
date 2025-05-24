@@ -96,7 +96,12 @@ class GoodsViewModel : ViewModel() {
         state.value.title = ""
         Log.e("state", "[VM] Added")
       }
-
+      is GoodsEvent.DeleteButtonClicked -> {
+        Log.e("state", "[VM] Updated to '${noteState.value.title}' with '${noteState.value.body}'")
+        App.getDatabase()?.noteDao()?.deleteById(
+          event.note.id
+        )
+      }
       is GoodsEvent.UpdateButtonClicked -> {
         Log.e("state", "[VM] Update started")
         viewModelScope.launch {
